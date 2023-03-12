@@ -7,7 +7,10 @@
 #include <vector>
 
 namespace algo {
-
+    ll count(ll n);
+    ll digit(ll n, int position);
+    ll find_r(ll mod, ll number);
+    ll trial(ll n);
     ll function(ll x, ll mod);
     ll gcd(ll a, ll b);
     ll pollard(ll n);
