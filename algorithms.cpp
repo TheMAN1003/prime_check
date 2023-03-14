@@ -53,17 +53,17 @@ ll algo::gcd(long long a, long long b) {
     return a;
 }
 
-ll powerMod(ll x, ll pow,ll mod)
+ll algo::powerMod(ll x, ll pow,ll mod)
 {
     ll C = 1;
-    for(int i = int(log2(pow)) + 1;; i >= 0; --i)
+    for(int i = int(log2(pow)); i >= 0; --i)
     {
-        if(pow & (1 << i) == 1)
+        if((pow>>i & 1) == 1)
         {
-            C = C * x;
+            C = (C * x)%mod;
         }
         if(i != 0)
-            C = C * C;
+            C = (C * C)%mod;
     }
     return C;
 }
@@ -87,6 +87,34 @@ ll algo::pollard(long long n) {
     }
 }
 
+bool algo::MillerRabin(long long p)
+{
+    ll k = 1000,j = 0;
+    ll d = p - 1, s = 0;
+    while (d % 2 == 0)
+    {
+        s++;
+        d>>=1;
+    }
+    while(j < k)
+    {
+        ll x = rand()%(p-2) + 2;
+        ll gcdD = gcd(x,p);
+        if(gcdD > 1)
+            return 0;
+        x = powerMod(x,d,p);
+        if(x == p-1 || x == 1)
+            return 1;
+        for(int r = 1; r < s; ++r)
+        {
+            x = ((x*x)^2)%p;
+            if(x == p-1)
+                return 1;
+        }
+        ++j;
+    }
+    return 0;
+}
 
 
 

@@ -18,7 +18,7 @@ namespace algo {
     ll gcd(ll a, ll b);
     ll pollard(ll n);
     bool MillerRabin(ll p);
-    ll powerMod(ll x, ll pow,ll mod)
+    ll powerMod(ll x, ll pow,ll mod);
 } // algo
 
 #endif //NTA_LAB_1_ALGORITHMS_H
