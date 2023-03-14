@@ -4,6 +4,9 @@
 #define ll long long
 
 #include <iostream>
+#include <ctime>
+#include <cmath>
+#include <cstdlib>
 #include <vector>
 
 namespace algo {
@@ -14,6 +17,8 @@ namespace algo {
     ll function(ll x, ll mod);
     ll gcd(ll a, ll b);
     ll pollard(ll n);
+    bool MillerRabin(ll p);
+    ll powerMod(ll x, ll pow,ll mod)
 } // algo
 
 #endif //NTA_LAB_1_ALGORITHMS_H

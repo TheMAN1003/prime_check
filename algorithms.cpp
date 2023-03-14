@@ -53,6 +53,21 @@ ll algo::gcd(long long a, long long b) {
     return a;
 }
 
+ll powerMod(ll x, ll pow,ll mod)
+{
+    ll C = 1;
+    for(int i = int(log2(pow)) + 1;; i >= 0; --i)
+    {
+        if(pow & (1 << i) == 1)
+        {
+            C = C * x;
+        }
+        if(i != 0)
+            C = C * C;
+    }
+    return C;
+}
+
 ll algo::pollard(long long n) {
     ll x = 1;
     ll y = 1;
@@ -71,3 +86,7 @@ ll algo::pollard(long long n) {
         }
     }
 }
+
+
+
+
