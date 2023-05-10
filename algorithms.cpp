@@ -68,16 +68,20 @@ namespace algo
         int jacobi(ll x, ll n)
         {
             int t = 1;
-            while (x != 0) {
-                while (x % 2 == 0) {
+            while (x != 0)
+            {
+                while (x % 2 == 0)
+                {
                     x /= 2;
                     int r = n % 8;
-                    if (r == 3 || r == 5) t = -t;
+                    if (r == 3 || r == 5)
+                        t = -t;
                 }
                 int temp = x;
                 x = n;
                 n = temp;
-                if (x % 4 == 3 && n % 4 == 3) t = -t;
+                if (x % 4 == 3 && n % 4 == 3)
+                    t = -t;
                 x %= n;
             }
             if (n == 1) return t;
@@ -86,12 +90,13 @@ namespace algo
 
         std::vector<ll> buildBase(const ll& n, std::vector<ll>& primes, const double& alpha)
         {
-            long long L = pow(exp(sqrt(log(n)*log(log(n)))), alpha);
-
+            long long L = pow(exp(sqrt(log2(n)*log2(log2(n)))), alpha);
+            std::cout<<"L= "<<L<<'\n';
             std::vector<ll> base;
             base.push_back(-1);
             for(auto p : primes)
             {
+                if(p > L) return base;
                 if(jacobi(n,p) == 1)
                     base.push_back(p);
             }
@@ -111,58 +116,116 @@ namespace algo
             b[0] = a[0];
             b2[0] = (b[0]*b[0])%n;
             if(b2[0] > n - b2[0])
-                b2[0] = n- b2[0];
+                b2[0] = b2[0] - n;
             for(int i = 1; i < k; ++i)
             {
-                v[i % 2] = (n - u[(i-1) % 2 ] * u[(i - 1) % 2]);
-                alpha = (sqrtN + u[(i - 1) % 2])/v[i % 2];
+                v[i % 2] = (n - u[(i-1) % 2] * u[(i - 1) % 2])/v[(i - 1) % 2];
+                alpha = (sqrtN + (double)u[(i - 1) % 2])/(double)v[i % 2];
                 a[i % 2] = (ll)alpha;
                 u[i % 2] = a[i % 2] * v[i % 2] - u[(i - 1) % 2];
                 if(i == 1)
                 {
-                    b[i] = a[i]*b[i-1] + 1;
+                    b[i] = (a[i % 2]*b[i-1] + 1) % n;
                 } else
                 {
-                    b[i] = a[i]*b[i-1] + b[i-2];
+                    b[i] = (a[i % 2]*b[i-1] + b[i-2]) % n;
                 }
-                b[i] = (b[i]*b[i]) % n;
+
                 b2[i] = (b[i]*b[i])%n;
                 if(b2[i] > n - b2[i])
-                    b2[i] = n- b2[i];
+                    b2[i] = b2[i] - n;
             }
             return std::pair<std::vector<ll>,std::vector<ll>>(b,b2);
         }
 
-        std::vector<ll> factorB(ll x, const std::vector<ll>& base)
+        bool factorB(ll x, const std::vector<ll>& base, std::vector<int>& v)
         {
-            std::vector v(base.size(),0);
-            while (x != 1)
+            if(x < 0)
             {
-                if(x < 0)
+                v[0] = 1;
+                x *= -1;
+            }
+            for(int i = 1; i < base.size(); ++i)
+            {
+                while(x % base[i] == 0)
                 {
-                    v[0] = 1;
-                    x *= -1;
+                    v[i] ^= 1;
+                    x /= base[i];
                 }
-                for(int i = 1; i < base.size(); ++i)
+                if(x == 1)
+                    return 1;
+            }
+            return 0;
+        }
+
+        std::vector<std::vector<int>> createSystem(const std::vector<ll> b2, const std::vector<ll>& base, std::vector<int>& index)
+        {
+            std::vector<std::vector<int>> sys;
+            for (int i = 0; i < b2.size(); ++i)
+            {
+                std::vector<int> v(base.size(), 0);
+                if(factorB(b2[i], base, v))
                 {
-                    int k = 0;
-                    while(x % base[i] == 0)
-                    {
-                        x/=base[i];
-                        ++k;
-                    }
-                    v[i] = k%2;
+                    sys.push_back(v);
+                    index.push_back(i);
                 }
+            }
+            return sys;
+        }
+
+        void addColumn(int j, int k, std::vector<std::vector<int>>& system)
+        {
+            for(int i = 0; i < system.size(); ++i)
+            {
+                system[i][k] ^= system[i][j];
             }
         }
 
-        std::vector<std::vector<ll>> createSystem(const std::vector<ll> b2,const std::vector<ll>& base)
+        std::vector<int> solveSystem(std::vector<std::vector<int>>& system)
         {
-            std::vector<std::vector<ll>> sys;
-            for(auto i: b2)
+            std::vector<ll> result(system.size());
+            std::vector<int> flag(system.size());
+            for(int i = 0; i < system.size(); ++i)
+                flag[i] = 0;
+
+            for(int j = 0; j < system[0].size(); ++j)
             {
-                sys.push_back(factorB(i,base));
+                int i = -1;
+                for(int x = 0; x < system.size(); ++x)
+                    if(system[x][j] == 1)
+                        i = x;
+                if(i != -1)
+                    for(int k = 0; k < system[0].size(); ++k)
+                    {
+                        flag[i] = 1;
+                        //std::cout<<'i'<<i<<'\n';
+                        if(k != j && system[i][k]==1)
+                        {
+                            addColumn(j,k,system);
+//                            std::cout<<"A"<<j<<"to"<<k<<'\n';
+//                            for (int n = 0; n < system.size(); ++n) {
+//                                for (int m = 0; m < system[0].size(); ++m) {
+//                                    std::cout << system[n][m] << " ";
+//                                }
+//                                std::cout << '\n';
+//                            }
+                        }
+                    }
             }
+
+//            for (int i = 0; i < system.size(); ++i)
+//
+//            std::cout<<'\n';
+//            for (int i = 0; i < system.size(); ++i)
+//            {
+//                std::cout<<flag[i]<<"    ";
+//                for (int j = 0; j < system[0].size(); ++j)
+//                {
+//                    std::cout<< system[i][j] << " ";
+//                }
+//                std::cout<<'\n';
+//            }
+            return flag;
         }
 
     }
@@ -233,16 +296,105 @@ bool algo::MillerRabin(long long p)
 
 ll algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
 {
+    n = 9073;
     double alpha = 1/sqrt(2);
 
     std::vector base = buildBase(n,primes,alpha);
+//    std::vector<ll> base;
+//    base.push_back(-1);base.push_back(2);base.push_back(3);base.push_back(7);
+    std::cout<<base.size()<<'\n';
+    for(auto i: base)
+        std::cout << i<< ' ';
+    std::cout<<"\n";
     std::vector<ll> b,b2;
 
-    auto t = continuedFraction(n,primes.size());
+    auto t = continuedFraction(n,base.size()+1);
+    for(int i = 0; i < t.second.size(); ++i)
+    {
+        std::cout<<t.second[i]<<" ";
+    }
+    std::cout<<"\n";
+
     b = t.first;
     b2 = t.second;
+    std::vector<int> index;
+    auto system = createSystem(b2, base, index);
+    for (int i = 0; i < system.size(); ++i)
+    {
+        std::cout << index[i]<<' ';
+        for (int j = 0; j < system[0].size(); ++j)
+        {
+            std::cout<< system[i][j]<<' ';
+        }
+        std::cout<<"\n";
+    }
 
-    //b = b + 1/(4*b);
+    std::vector<std::vector<int>> system2;
+
+
+
+    auto flag = algo::solveSystem(system);
+    std::vector<int> resultIndex;
+    std::cout<<'\n';
+            for (int i = 0; i < system.size(); ++i)
+            {
+                std::cout<<i<<' '<<flag[i]<<"    ";
+                for (int j = 0; j < system[0].size(); ++j)
+                {
+                    std::cout<< system[i][j] << " ";
+                }
+                std::cout<<'\n';
+            }
+//    flag[0] = -1;
+    ll r1 =0, r2 =0;
+    for(int k = 0; k < flag.size(); ++k)
+    {
+        if(flag[k] == 0)
+        {
+            resultIndex.push_back(index[k]);
+            for (int j = 0; j < system[k].size(); ++j)
+            {
+                if(system[k][j])
+                    for (int i = 0; i < system.size(); ++i)
+                    {
+                        if (flag[i] == 1 && system[i][j] && i != k)
+                        {
+                            resultIndex.push_back(index[i]);
+                            break;
+                        }
+                    }
+            }
+            ll X=1,Y=1;
+            std::cout<<'\n';
+            for(auto id: resultIndex)
+            {
+                X *= b[id];
+                Y *= b2[id];
+                std::cout<<id<<' '<<b[id]<<" "<<b2[id]<<'\n';
+            }
+            Y = sqrt(Y);
+            r1 = gcd(abs(X + Y), n);
+            r2 = gcd(abs(X - Y), n);
+            std::cout<<gcd((X-Y)%n,n)<<' '<<gcd((X-Y)%n,n)<<'\n';
+            if(r1 != 1 && r1 != n)
+                return r1;
+            if (r2 != 1 && r2 != n)
+                return r2;
+            else
+                continue;
+        }
+    }
+
+
+
+//    for (int i = 0; i < resultIndex.size(); ++i)
+//    {
+//        std::cout<<resultIndex[i]<<' ';
+//    }
+
+
+
+
 }
 
 
