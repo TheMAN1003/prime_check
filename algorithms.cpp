@@ -92,6 +92,8 @@ namespace algo
         {
             long long L = pow(exp(sqrt(log2(n)*log2(log2(n)))), alpha);
             std::cout<<"L= "<<L<<'\n';
+            L = 15485863;
+           // L = 10000;
             std::vector<ll> base;
             base.push_back(-1);
             for(auto p : primes)
@@ -131,7 +133,7 @@ namespace algo
                     b[i] = (a[i % 2]*b[i-1] + b[i-2]) % n;
                 }
 
-                b2[i] = (b[i]*b[i])%n;
+                b2[i] = (b[i]*b[i]) % n;
                 if(b2[i] > n - b2[i])
                     b2[i] = b2[i] - n;
             }
@@ -166,6 +168,7 @@ namespace algo
                 std::vector<int> v(base.size(), 0);
                 if(factorB(b2[i], base, v))
                 {
+                    std::cout<<i<<" "<<b2[i]<<" "<<b2.size()<<'\n';
                     sys.push_back(v);
                     index.push_back(i);
                 }
@@ -294,63 +297,81 @@ bool algo::MillerRabin(long long p)
     return 0;
 }
 
-ll algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
+std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
 {
-    n = 9073;
-    double alpha = 1/sqrt(2);
+   // n=(656904040)/(8*5*13);
+
+    double alpha = 2/sqrt(2);
 
     std::vector base = buildBase(n,primes,alpha);
+    std::cout<<"BASE BUILDED";
 //    std::vector<ll> base;
 //    base.push_back(-1);base.push_back(2);base.push_back(3);base.push_back(7);
-    std::cout<<base.size()<<'\n';
-    for(auto i: base)
-        std::cout << i<< ' ';
+   // std::cout<<base.size()<<'\n';
+//    for(auto i: base)
+//        std::cout << i<< ' ';
     std::cout<<"\n";
     std::vector<ll> b,b2;
 
-    auto t = continuedFraction(n,base.size()+1);
-    for(int i = 0; i < t.second.size(); ++i)
-    {
-        std::cout<<t.second[i]<<" ";
-    }
-    std::cout<<"\n";
+    auto t = continuedFraction(n,base.size());
+    std::cout<<"BASE Frac\n";
+
+//    for(int i = 0; i < t.second.size(); ++i)
+//    {
+//        std::cout<<t.second[i]<<" ";
+//    }
+//    std::cout<<"\n";
 
     b = t.first;
     b2 = t.second;
     std::vector<int> index;
     auto system = createSystem(b2, base, index);
-    for (int i = 0; i < system.size(); ++i)
-    {
-        std::cout << index[i]<<' ';
-        for (int j = 0; j < system[0].size(); ++j)
-        {
-            std::cout<< system[i][j]<<' ';
-        }
-        std::cout<<"\n";
-    }
+    std::cout<<"BASE SYS\n";
+//    for (int i = 0; i < system.size(); ++i)
+//    {
+//        std::cout << index[i]<<' ';
+//        for (int j = 0; j < system[0].size(); ++j)
+//        {
+//            std::cout<< system[i][j]<<' ';
+//        }
+//        std::cout<<"\n";
+//    }
 
     std::vector<std::vector<int>> system2;
 
 
 
     auto flag = algo::solveSystem(system);
+    std::cout<<"SOVLE SYS\n";
+    std::cout<<system.size()<<'\n';
+    for (int i = 0; i < system.size(); ++i)
+    {
+        std::cout << flag[i];
+//        for (int j = 0; j < system[0].size(); ++j)
+//        {
+//            std::cout<< system[i][j]<<' ';
+//        }
+//        std::cout<<"\n";
+    }
+    std::cout<<"\n";
     std::vector<int> resultIndex;
-    std::cout<<'\n';
-            for (int i = 0; i < system.size(); ++i)
-            {
-                std::cout<<i<<' '<<flag[i]<<"    ";
-                for (int j = 0; j < system[0].size(); ++j)
-                {
-                    std::cout<< system[i][j] << " ";
-                }
-                std::cout<<'\n';
-            }
+//    std::cout<<'\n';
+//            for (int i = 0; i < system.size(); ++i)
+//            {
+//                std::cout<<i<<' '<<flag[i]<<"    ";
+//                for (int j = 0; j < system[0].size(); ++j)
+//                {
+//                    std::cout<< system[i][j] << " ";
+//                }
+//                std::cout<<'\n';
+//            }
 //    flag[0] = -1;
     ll r1 =0, r2 =0;
     for(int k = 0; k < flag.size(); ++k)
     {
         if(flag[k] == 0)
         {
+            std::cout<<"k="<<k<<'\n';
             resultIndex.push_back(index[k]);
             for (int j = 0; j < system[k].size(); ++j)
             {
@@ -364,27 +385,63 @@ ll algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
                         }
                     }
             }
-            ll X=1,Y=1;
-            std::cout<<'\n';
+
+            mpz_class X(1),Y(1);
+
+            // std::cout<<'\n';
             for(auto id: resultIndex)
             {
-                X *= b[id];
-                Y *= b2[id];
-                std::cout<<id<<' '<<b[id]<<" "<<b2[id]<<'\n';
+                mpz_mul_ui(X.get_mpz_t(), X.get_mpz_t(), b[id]);
+
+                mpz_mul_ui(Y.get_mpz_t(), Y.get_mpz_t(), abs(b2[id]));
+                std::cout<<"X = "<<X.get_str()<<" "<<Y.get_str()<<'\n';
+                //std::cout<<id<<' '<<b[id]<<" "<<b2[id]<<'\n';
             }
+            mpz_class sqrtX = Y;
             Y = sqrt(Y);
-            r1 = gcd(abs(X + Y), n);
-            r2 = gcd(abs(X - Y), n);
-            std::cout<<gcd((X-Y)%n,n)<<' '<<gcd((X-Y)%n,n)<<'\n';
-            if(r1 != 1 && r1 != n)
-                return r1;
-            if (r2 != 1 && r2 != n)
-                return r2;
+
+            if(sqrtX == Y*Y)
+                std::cout<<"Y NORM\n";
+
+            mpz_class r1,r2;
+            mpz_t N;
+            mpz_init(N);
+            mpz_set_si(N, n);
+            mpz_class tmp1, tmp2;
+            tmp1 = X + Y;
+            tmp2 = X - Y;
+            std::cout<<'\n\n';
+            std::cout<<X.get_str()<<" "<<Y.get_str()<<'\n';
+            mpz_t xPlusY, xMinusY;
+            mpz_init(xPlusY);
+            mpz_init(xMinusY);
+            mpz_set(xPlusY, tmp1.get_mpz_t());
+            mpz_set(xMinusY, tmp2.get_mpz_t());
+
+            mpz_gcd(r1.get_mpz_t(), xPlusY, N);
+            mpz_gcd(r2.get_mpz_t(), xMinusY, N);
+            mpz_clear(xPlusY);
+            mpz_clear(xMinusY);
+
+            std::string  r1S = r1.get_str();
+            std::string  r2S = r2.get_str();
+
+            std::cout<<r1S << " "<<r2S<<'\n';
+            if(r1S != "1" && r1S != std::to_string(n))
+            {
+                mpz_clear(N);
+                return r1.get_str();
+            }
+            if (r2S != "1" && r2S != std::to_string(n))
+            {
+                mpz_clear(N);
+                return r2.get_str();
+            }
             else
                 continue;
         }
     }
-
+    return "problem";
 
 
 //    for (int i = 0; i < resultIndex.size(); ++i)

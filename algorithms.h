@@ -7,13 +7,14 @@
 #include <cmath>
 #include <cstdlib>
 #include <vector>
+#include <gmpxx.h>
 
 namespace algo
 {
     ll trial(ll n);
     ll pollard(ll n);
     bool MillerRabin(ll p);
-    ll methodBrillhartMorrison(ll n,std::vector<ll> primes);
+    std::string methodBrillhartMorrison(ll n,std::vector<ll> primes);
 }
 
 #endif //NTA_LAB_1_ALGORITHMS_H
