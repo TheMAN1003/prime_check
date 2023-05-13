@@ -45,7 +45,13 @@ int main()
         primes.push_back(p);
     }
     infile.close();
+    int i =0;
+//    for(auto p: primes)
+//        if(algo::MillerRabin(p) != 1)
+//            std::cout<<p<<'\n';
+//    std::cout<<i;
     long long n = 7442109405582674149/239353;
+
     std::cout <<'\n'<<algo::methodBrillhartMorrison(n, primes);
 
 

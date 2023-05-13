@@ -1,4 +1,6 @@
 #include "algorithms.h"
+#include <chrono>
+#include <omp.h>
 
 namespace algo
 {
@@ -92,7 +94,7 @@ namespace algo
         {
             long long L = pow(exp(sqrt(log2(n)*log2(log2(n)))), alpha);
             std::cout<<"L= "<<L<<'\n';
-            L = 15485863;
+            //L = 15485863;
            // L = 10000;
             std::vector<ll> base;
             base.push_back(-1);
@@ -140,7 +142,63 @@ namespace algo
             return std::pair<std::vector<ll>,std::vector<ll>>(b,b2);
         }
 
-        bool factorB(ll x, const std::vector<ll>& base, std::vector<int>& v)
+        bool binarySearch(ll prime, const std::vector<ll>& base)
+        {
+            int left = 0;
+            int right = base.size() - 1;
+
+            while (left <= right)
+            {
+                int mid = left + (right - left) / 2;
+
+                if (base[mid] == prime)
+                {
+                    return true;
+                }
+                else if (base[mid] < prime)
+                {
+                    left = mid + 1;
+                }
+                else
+                {
+                    right = mid - 1;
+                }
+            }
+
+            return false;
+        }
+
+        bool factorB(ll x, const std::vector<ll>& base, std::vector<int>& v, const std::vector<ll>& primes)
+        {
+            if(x < 0)
+            {
+                v[0] = 1;
+                x *= -1;
+            }
+            std::vector<ll> checkBase;
+            for(int i = 1; i < primes.size(); ++i)
+            {
+                if(x % primes[i] == 0)
+                {
+                    if(binarySearch(primes[i], base))
+                    {
+                        while(x % primes[i] == 0)
+                        {
+                            v[i] ^= 1;
+                            x /= primes[i];
+                        }
+                        if(x == 1)
+                        {
+                            return 1;
+                        }
+                    } else
+                        return 0;
+                }
+            }
+            return 0;
+        }
+
+        bool factorB1(ll x, const std::vector<ll>& base, std::vector<int>& v, const std::vector<ll>& primes)
         {
             if(x < 0)
             {
@@ -160,19 +218,28 @@ namespace algo
             return 0;
         }
 
-        std::vector<std::vector<int>> createSystem(const std::vector<ll> b2, const std::vector<ll>& base, std::vector<int>& index)
+        std::vector<std::vector<int>> createSystem(const std::vector<ll> b2, const std::vector<ll>& base, std::vector<int>& index, const std::vector<ll> primes)
         {
             std::vector<std::vector<int>> sys;
+            auto start = std::chrono::high_resolution_clock::now();
+
+            //#pragma omp parallel for
             for (int i = 0; i < b2.size(); ++i)
             {
                 std::vector<int> v(base.size(), 0);
-                if(factorB(b2[i], base, v))
+                if(factorB1(b2[i], base, v, primes))
                 {
-                    std::cout<<i<<" "<<b2[i]<<" "<<b2.size()<<'\n';
+                    std::cout<<i<<"b2 = "<<b2[i]<<" "<<b2.size()<<"  "<<sys.size()<<'\n';
                     sys.push_back(v);
                     index.push_back(i);
                 }
+
             }
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> duration = end - start;
+            std::cout << "Час виконання: " << duration.count() << " секунд" << std::endl;
+            int k;
+            //std::cin>>k;
             return sys;
         }
 
@@ -184,7 +251,7 @@ namespace algo
             }
         }
 
-        std::vector<int> solveSystem(std::vector<std::vector<int>>& system)
+        std::vector<int> solveSystem(std::vector<std::vector<int>>& system)//check
         {
             std::vector<ll> result(system.size());
             std::vector<int> flag(system.size());
@@ -270,6 +337,7 @@ ll algo::pollard(long long n) {
 
 bool algo::MillerRabin(long long p)
 {
+
     ll k = 1000,j = 0;
     ll d = p - 1, s = 0;
     while (d % 2 == 0)
@@ -279,30 +347,31 @@ bool algo::MillerRabin(long long p)
     }
     while(j < k)
     {
-        ll x = rand()%(p-2) + 2;
-        ll gcdD = gcd(x,p);
-        if(gcdD > 1)
-            return 0;
-        x = powerMod(x,d,p);
-        if(x == p-1 || x == 1)
-            return 1;
-        for(int r = 1; r < s; ++r)
-        {
-            x = ((x*x)^2)%p;
-            if(x == p-1)
-                return 1;
-        }
-        ++j;
+//        ll x = rand()%(p-2) + 2;
+//        ll gcdD = gcd(x,p);
+//        if(gcdD > 1)
+//            return 0;
+//        x = powerMod(x,d,p);
+//        if(x == p-1 || x == 1)
+//            return 1;
+//        for(int r = 1; r < s; ++r)
+//        {
+//            x = ((x*x)^2)%p;
+//            if(x == p-1)
+//                return 1;
+//        }
+//        ++j;
     }
     return 0;
 }
 
 std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
 {
-   // n=(656904040)/(8*5*13);
-
-    double alpha = 2/sqrt(2);
-
+    n=61333127792637/(3);
+    //n = 17843;
+    double alpha = 1/sqrt(2) ;
+    alpha += 0.3;
+    std::cout<<alpha<<'\n';
     std::vector base = buildBase(n,primes,alpha);
     std::cout<<"BASE BUILDED";
 //    std::vector<ll> base;
@@ -325,7 +394,7 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
     b = t.first;
     b2 = t.second;
     std::vector<int> index;
-    auto system = createSystem(b2, base, index);
+    auto system = createSystem(b2, base, index, primes);
     std::cout<<"BASE SYS\n";
 //    for (int i = 0; i < system.size(); ++i)
 //    {
@@ -387,7 +456,7 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
             }
 
             mpz_class X(1),Y(1);
-
+            std::cout<<"X = "<<X.get_str()<<" "<<Y.get_str()<<'\n\n';
             // std::cout<<'\n';
             for(auto id: resultIndex)
             {
@@ -395,8 +464,9 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
 
                 mpz_mul_ui(Y.get_mpz_t(), Y.get_mpz_t(), abs(b2[id]));
                 std::cout<<"X = "<<X.get_str()<<" "<<Y.get_str()<<'\n';
-                //std::cout<<id<<' '<<b[id]<<" "<<b2[id]<<'\n';
+                std::cout<<id<<' '<<"b[i] = "<<b[id]<<" "<<"b[i] = "<<b2[id]<<'\n';
             }
+            //std::cout<<"X = "<<X.get_str()<<" "<<Y.get_str()<<'\n';
             mpz_class sqrtX = Y;
             Y = sqrt(Y);
 
@@ -411,7 +481,7 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
             tmp1 = X + Y;
             tmp2 = X - Y;
             std::cout<<'\n\n';
-            std::cout<<X.get_str()<<" "<<Y.get_str()<<'\n';
+            std::cout<<X.get_str()<<" "<<Y.get_str()<<" "<<sqrtX.get_str()<<'\n';
             mpz_t xPlusY, xMinusY;
             mpz_init(xPlusY);
             mpz_init(xMinusY);
@@ -420,13 +490,16 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
 
             mpz_gcd(r1.get_mpz_t(), xPlusY, N);
             mpz_gcd(r2.get_mpz_t(), xMinusY, N);
-            mpz_clear(xPlusY);
-            mpz_clear(xMinusY);
+
 
             std::string  r1S = r1.get_str();
             std::string  r2S = r2.get_str();
-
-            std::cout<<r1S << " "<<r2S<<'\n';
+            std::cout<<"\nX+y = "<<tmp1.get_str()<<"\nX-Y"<<tmp2.get_str()<<'\n';
+            std::cout<<r1S<< " "<<r2S<<'\n';
+            mpz_clear(xPlusY);
+            mpz_clear(xMinusY);
+            X = 1;
+            Y = 1;
             if(r1S != "1" && r1S != std::to_string(n))
             {
                 mpz_clear(N);
@@ -441,6 +514,7 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
                 continue;
         }
     }
+
     return "problem";
 
 
