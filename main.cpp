@@ -9,32 +9,31 @@
 
 using std::cin, std::cout,std::ifstream;
 
+
+
+
+
+
 int main()
 {
 
-//    mpz_class X=256,Y=1;
-//    long long b = 256;
-//    mpz_mul_ui(X.get_mpz_t(), X.get_mpz_t(), b);
-//    X = sqrt(X);
-//    cout << X.get_str() << std::endl;
-//
-//
-//    mpz_t n;
-//    mpz_init(n);
-//    mpz_set_ui(n, 100);
-//
-//    mpz_t result;
-//    mpz_init(result);
-//    mpz_sqrt(result, n);
-//
-//    gmp_printf("sqrt(%Zd) = %Zd\n", n, result);
-//
-//    mpz_clear(n);
-//    mpz_clear(result);
-
-
+    long long n = 2500744714570633849;
+    //n= 3009182572376191;
+    ll q;
+    q = algo::trial(n);
+    while (q != -1)
+    {
+        cout<<q<<' ';
+        n /= q;
+        q = algo::trial(n);
+    }
+    q = algo::pollard(n);
+    cout<<q<<' ';
+    n/=q;
+    const char* primeNumbersFile = std::getenv("PRIME_NUMBERS_FILE");
 
     ifstream infile("../firstMilionPrimeNumbers.txt"); // відкриваємо файл для зчитування
+    //ifstream infile(primeNumbersFile); // відкриваємо файл для зчитування
 
     if(!infile.is_open())
         std::cout<<"lox";
@@ -45,17 +44,12 @@ int main()
         primes.push_back(p);
     }
     infile.close();
-    int i =0;
-//    for(auto p: primes)
-//        if(algo::MillerRabin(p) != 1)
-//            std::cout<<p<<'\n';
-//    std::cout<<i;
-    long long n = 7442109405582674149/239353;
-
-    std::cout <<'\n'<<algo::methodBrillhartMorrison(n, primes);
-
+    if(!algo::MillerRabin(n))
+        std::cout <<'\n'<<"BM done"+algo::methodBrillhartMorrison(n, primes)<<"BM";
+    else
+        std::cout<<n<<'\n';
 
     double alpha = 2 / sqrt(2);
    // cout << pow(exp(sqrt(log(n)*log(log(n)))), alpha);
-    return 0;
+//    return 0;
 }

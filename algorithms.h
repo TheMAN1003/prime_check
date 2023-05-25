@@ -14,6 +14,7 @@ namespace algo
     ll trial(ll n);
     ll pollard(ll n);
     bool MillerRabin(ll p);
+
     std::string methodBrillhartMorrison(ll n,std::vector<ll> primes);
 }
 

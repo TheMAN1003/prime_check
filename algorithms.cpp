@@ -1,6 +1,8 @@
 #include "algorithms.h"
 #include <chrono>
 #include <omp.h>
+#include <map>
+#include <fstream>
 
 namespace algo
 {
@@ -59,43 +61,46 @@ namespace algo
             {
                 if((pow>>i & 1) == 1)
                 {
-                    C = (C * x)%mod;
+                    C = (C%mod * x%mod)%mod;
                 }
                 if(i != 0)
-                    C = (C * C)%mod;
+                    C = (C%mod * C%mod)%mod;
             }
             return C;
         }
 
-        int jacobi(ll x, ll n)
+        ll jacobi(ll x, ll n)
         {
-            int t = 1;
-            while (x != 0)
-            {
-                while (x % 2 == 0)
-                {
-                    x /= 2;
-                    int r = n % 8;
-                    if (r == 3 || r == 5)
-                        t = -t;
-                }
-                int temp = x;
-                x = n;
-                n = temp;
-                if (x % 4 == 3 && n % 4 == 3)
-                    t = -t;
-                x %= n;
-            }
-            if (n == 1) return t;
-            else return 0;
+            //std::cout<<x<<"|"<<n<<" "<<algo::powerMod(x,(n-1)/2,n)<<'\n';
+            return algo::powerMod(x,(n-1)/2,n);
+//            int t = 1;
+//            while (x != 0)
+//            {
+//                while (x % 2 == 0)
+//                {
+//                    x /= 2;
+//                    int r = n % 8;
+//                    if (r == 3 || r == 5)
+//                        t = -t;
+//                }
+//                int temp = x;
+//                x = n;
+//                n = temp;
+//                if (x % 4 == 3 && n % 4 == 3)
+//                    t = -t;
+//                x %= n;
+//            }
+//            if (n == 1) return t;
+//            else return 0;
         }
 
         std::vector<ll> buildBase(const ll& n, std::vector<ll>& primes, const double& alpha)
         {
             long long L = pow(exp(sqrt(log2(n)*log2(log2(n)))), alpha);
             std::cout<<"L= "<<L<<'\n';
-            //L = 15485863;
+           //L = 10004581;
            // L = 10000;
+            //L = 1485;
             std::vector<ll> base;
             base.push_back(-1);
             for(auto p : primes)
@@ -118,11 +123,12 @@ namespace algo
             std::vector<ll> b(k);
             std::vector<ll> b2(k);
             b[0] = a[0];
-            b2[0] = (b[0]*b[0])%n;
+            b2[0] = (b[0]%n*b[0]%n)%n;
             if(b2[0] > n - b2[0])
                 b2[0] = b2[0] - n;
             for(int i = 1; i < k; ++i)
             {
+
                 v[i % 2] = (n - u[(i-1) % 2] * u[(i - 1) % 2])/v[(i - 1) % 2];
                 alpha = (sqrtN + (double)u[(i - 1) % 2])/(double)v[i % 2];
                 a[i % 2] = (ll)alpha;
@@ -132,10 +138,20 @@ namespace algo
                     b[i] = (a[i % 2]*b[i-1] + 1) % n;
                 } else
                 {
-                    b[i] = (a[i % 2]*b[i-1] + b[i-2]) % n;
+                    b[i] = ((a[i % 2]%n)*(b[i-1]%n) + b[i-2]) % n;
                 }
 
-                b2[i] = (b[i]*b[i]) % n;
+                mpz_class mod_result;  // Результат за модулем n
+                mpz_class result;  // Результат піднесення до квадрату
+                mpz_t tmpb;
+                mpz_init_set_ui(tmpb, b[i]);
+
+                // Піднесення a до квадрату
+                mpz_pow_ui(result.get_mpz_t(), tmpb, 2);
+
+                mpz_mod_ui(mod_result.get_mpz_t(), result.get_mpz_t(), n);
+
+                b2[i] = (ll)mpz_get_ui(mod_result.get_mpz_t());
                 if(b2[i] > n - b2[i])
                     b2[i] = b2[i] - n;
             }
@@ -198,17 +214,19 @@ namespace algo
             return 0;
         }
 
-        bool factorB1(ll x, const std::vector<ll>& base, std::vector<int>& v, const std::vector<ll>& primes)
+        bool factorB1(ll x, const std::vector<ll>& base, std::vector<int>& v, const std::vector<ll>& primes, std::vector<std::map<ll,int>>& b2factor , int k)
         {
             if(x < 0)
             {
                 v[0] = 1;
                 x *= -1;
+                b2factor[k][-1] = 1;
             }
             for(int i = 1; i < base.size(); ++i)
             {
                 while(x % base[i] == 0)
                 {
+                    b2factor[k][base[i]] += 1;
                     v[i] ^= 1;
                     x /= base[i];
                 }
@@ -218,24 +236,31 @@ namespace algo
             return 0;
         }
 
-        std::vector<std::vector<int>> createSystem(const std::vector<ll> b2, const std::vector<ll>& base, std::vector<int>& index, const std::vector<ll> primes)
+        std::vector<std::pair<int,std::vector<int>>> createSystem(const std::vector<ll> b2,std::vector<std::map<ll,int>>& b2factor ,const std::vector<ll>& base, std::vector<int>& index, const std::vector<ll> primes)
         {
-            std::vector<std::vector<int>> sys;
+            std::vector<std::pair<int,std::vector<int>>> sys;
             auto start = std::chrono::high_resolution_clock::now();
 
-            //#pragma omp parallel for
+
             for (int i = 0; i < b2.size(); ++i)
             {
-                std::vector<int> v(base.size(), 0);
-                if(factorB1(b2[i], base, v, primes))
-                {
-                    std::cout<<i<<"b2 = "<<b2[i]<<" "<<b2.size()<<"  "<<sys.size()<<'\n';
-                    sys.push_back(v);
-                    index.push_back(i);
+                    std::vector<int> v (base.size(), 0);
+
+                    if(factorB1(b2[i], base, v, primes, b2factor, i))
+                    {
+
+                        std::cout<<i<<"b2 = "<<b2[i]<<" "<<b2.size()<<"  "<<sys.size()<<'\n';
+
+                        sys.push_back(std::make_pair(i,v));
+                        //index.push_back(i);
+                    }
+
                 }
 
-            }
+
             auto end = std::chrono::high_resolution_clock::now();
+            int s;
+            //std::cin>>s;
             std::chrono::duration<double> duration = end - start;
             std::cout << "Час виконання: " << duration.count() << " секунд" << std::endl;
             int k;
@@ -243,33 +268,33 @@ namespace algo
             return sys;
         }
 
-        void addColumn(int j, int k, std::vector<std::vector<int>>& system)
+        void addColumn(int j, int k, std::vector<std::pair<int,std::vector<int>>>& system)
         {
             for(int i = 0; i < system.size(); ++i)
             {
-                system[i][k] ^= system[i][j];
+                system[i].second[k] ^= system[i].second[j];
             }
         }
 
-        std::vector<int> solveSystem(std::vector<std::vector<int>>& system)//check
+        std::vector<int> solveSystem(std::vector<std::pair<int,std::vector<int>>>& system)//check
         {
             std::vector<ll> result(system.size());
             std::vector<int> flag(system.size());
             for(int i = 0; i < system.size(); ++i)
                 flag[i] = 0;
 
-            for(int j = 0; j < system[0].size(); ++j)
+            for(int j = 0; j < system[0].second.size(); ++j)
             {
                 int i = -1;
                 for(int x = 0; x < system.size(); ++x)
-                    if(system[x][j] == 1)
+                    if(system[x].second[j] == 1)
                         i = x;
                 if(i != -1)
-                    for(int k = 0; k < system[0].size(); ++k)
+                    for(int k = 0; k < system[0].second.size(); ++k)
                     {
                         flag[i] = 1;
-                        //std::cout<<'i'<<i<<'\n';
-                        if(k != j && system[i][k]==1)
+
+                        if(k != j && system[i].second[k]==1)
                         {
                             addColumn(j,k,system);
 //                            std::cout<<"A"<<j<<"to"<<k<<'\n';
@@ -312,7 +337,7 @@ ll algo::trial(long long n) {
             return j;
         }
     }
-    std::cout << "Trial method was unsuccessful\n" ;
+    //std::cout << "Trial method was unsuccessful\n" ;
     return -1;
 }
 
@@ -347,129 +372,135 @@ bool algo::MillerRabin(long long p)
     }
     while(j < k)
     {
-//        ll x = rand()%(p-2) + 2;
-//        ll gcdD = gcd(x,p);
-//        if(gcdD > 1)
-//            return 0;
-//        x = powerMod(x,d,p);
-//        if(x == p-1 || x == 1)
-//            return 1;
-//        for(int r = 1; r < s; ++r)
-//        {
-//            x = ((x*x)^2)%p;
-//            if(x == p-1)
-//                return 1;
-//        }
-//        ++j;
+        ll x = rand()%(p-2) + 2;
+        ll gcdD = gcd(x,p);
+        if(gcdD > 1)
+            return 0;
+        x = powerMod(x,d,p);
+        if(x == p-1 || x == 1)
+            return 1;
+        for(int r = 1; r < s; ++r)
+        {
+            x = ((x*x)^2)%p;
+            if(x == p-1)
+                return 1;
+        }
+        ++j;
     }
     return 0;
 }
 
 std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
 {
-    n=61333127792637/(3);
-    //n = 17843;
+    auto start = std::chrono::high_resolution_clock::now();
     double alpha = 1/sqrt(2) ;
-    alpha += 0.3;
     std::cout<<alpha<<'\n';
-    std::vector base = buildBase(n,primes,alpha);
-    std::cout<<"BASE BUILDED";
-//    std::vector<ll> base;
-//    base.push_back(-1);base.push_back(2);base.push_back(3);base.push_back(7);
-   // std::cout<<base.size()<<'\n';
-//    for(auto i: base)
-//        std::cout << i<< ' ';
-    std::cout<<"\n";
+    std::vector<ll> base = buildBase(n,primes, alpha);
     std::vector<ll> b,b2;
-
     auto t = continuedFraction(n,base.size());
-    std::cout<<"BASE Frac\n";
-
-//    for(int i = 0; i < t.second.size(); ++i)
-//    {
-//        std::cout<<t.second[i]<<" ";
-//    }
-//    std::cout<<"\n";
 
     b = t.first;
     b2 = t.second;
+
     std::vector<int> index;
-    auto system = createSystem(b2, base, index, primes);
-    std::cout<<"BASE SYS\n";
-//    for (int i = 0; i < system.size(); ++i)
-//    {
-//        std::cout << index[i]<<' ';
-//        for (int j = 0; j < system[0].size(); ++j)
-//        {
-//            std::cout<< system[i][j]<<' ';
-//        }
-//        std::cout<<"\n";
-//    }
+    std::vector<std::map<ll,int>> b2factor(b2.size());
+    auto system = createSystem(b2,b2factor, base, index, primes);
 
-    std::vector<std::vector<int>> system2;
-
-
+    std::vector<std::vector<int>> s;
+    for(int i = 0; i < system.size(); ++i)
+    {
+        std::vector<int> tmp;
+        for(int j = 0; j < system[i].second.size();++j)
+        {
+            tmp.push_back(system[i].second[j]);
+        }
+        s.push_back(tmp);
+    }
 
     auto flag = algo::solveSystem(system);
-    std::cout<<"SOVLE SYS\n";
-    std::cout<<system.size()<<'\n';
     for (int i = 0; i < system.size(); ++i)
     {
-        std::cout << flag[i];
-//        for (int j = 0; j < system[0].size(); ++j)
-//        {
-//            std::cout<< system[i][j]<<' ';
-//        }
-//        std::cout<<"\n";
+        std::cout<< system[i].first<<' ';
+        for (int j = 0; j < system[i].second.size(); ++j)
+        {
+            std::cout<< system[i].second[j]<<' ';
+        }
+        std::cout<<"\n";
     }
+
     std::cout<<"\n";
     std::vector<int> resultIndex;
-//    std::cout<<'\n';
-//            for (int i = 0; i < system.size(); ++i)
-//            {
-//                std::cout<<i<<' '<<flag[i]<<"    ";
-//                for (int j = 0; j < system[0].size(); ++j)
-//                {
-//                    std::cout<< system[i][j] << " ";
-//                }
-//                std::cout<<'\n';
-//            }
-//    flag[0] = -1;
-    ll r1 =0, r2 =0;
-    for(int k = 0; k < flag.size(); ++k)
+
+    for(int k = 0; k < flag.size(); ++k)//рядок
     {
-        if(flag[k] == 0)
+        if(flag[k] == 0) // шукаємо по 1 його залежні
         {
             std::cout<<"k="<<k<<'\n';
-            resultIndex.push_back(index[k]);
-            for (int j = 0; j < system[k].size(); ++j)
+            resultIndex.push_back(system[k].first);
+            for (int j = 0; j < system[k].second.size(); ++j)
             {
-                if(system[k][j])
+                if(system[k].second[j] == 1)
+                {
                     for (int i = 0; i < system.size(); ++i)
                     {
-                        if (flag[i] == 1 && system[i][j] && i != k)
+                        if (flag[i] == 1 && system[i].second[j] == 1 && i != k)
                         {
-                            resultIndex.push_back(index[i]);
+                            resultIndex.push_back(system[i].first);
                             break;
                         }
                     }
+                }
+
             }
 
+            std::vector<int> a(system[0].second.size(),0);
+
+            std::cout<<"\n";
             mpz_class X(1),Y(1);
-            std::cout<<"X = "<<X.get_str()<<" "<<Y.get_str()<<'\n\n';
-            // std::cout<<'\n';
+
+            std::map<ll, int> factorY;
             for(auto id: resultIndex)
             {
                 mpz_mul_ui(X.get_mpz_t(), X.get_mpz_t(), b[id]);
 
                 mpz_mul_ui(Y.get_mpz_t(), Y.get_mpz_t(), abs(b2[id]));
-                std::cout<<"X = "<<X.get_str()<<" "<<Y.get_str()<<'\n';
-                std::cout<<id<<' '<<"b[i] = "<<b[id]<<" "<<"b[i] = "<<b2[id]<<'\n';
+
+                for(auto e: b2factor[id])
+                {
+                    factorY[e.first] += e.second;
+                }
+
             }
-            //std::cout<<"X = "<<X.get_str()<<" "<<Y.get_str()<<'\n';
+
+
+            mpz_class Yr(1);
+            for(auto e: factorY)
+            {
+                mpz_class result;
+               // std::cout<<e.first<<"^"<<e.second<<'*'<<" ";
+                if(e.first != -1)
+                if(e.second % 2 ==0 )
+                {
+                    mpz_ui_pow_ui(result.get_mpz_t(), e.first, e.second/2);
+                    Yr = Yr * result;
+                }else
+                {
+                    return "BIG PROBLEM\n";
+                }
+            }
+            //std::cout<<'\n';
+
+           // std::cout<<"Y before sqrt "<<Y.get_str()<<'\n';
             mpz_class sqrtX = Y;
             Y = sqrt(Y);
-
+            if(Y == Yr)
+            {
+                std::cout<<"PEREMOHA\n";
+            }else
+            {
+                std::cout<<Y.get_str()<<'\n'<<Yr.get_str()<<'\n';
+                std::cout<<"NOTPEREMOHA\n";
+            }
             if(sqrtX == Y*Y)
                 std::cout<<"Y NORM\n";
 
@@ -478,10 +509,10 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
             mpz_init(N);
             mpz_set_si(N, n);
             mpz_class tmp1, tmp2;
-            tmp1 = X + Y;
-            tmp2 = X - Y;
-            std::cout<<'\n\n';
-            std::cout<<X.get_str()<<" "<<Y.get_str()<<" "<<sqrtX.get_str()<<'\n';
+            tmp1 = X + Yr;
+            tmp2 = X - Yr;
+            //std::cout<<'\n\n';
+           // std::cout<<X.get_str()<<" "<<Y.get_str()<<" "<<sqrtX.get_str()<<'\n';
             mpz_t xPlusY, xMinusY;
             mpz_init(xPlusY);
             mpz_init(xMinusY);
@@ -494,8 +525,8 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
 
             std::string  r1S = r1.get_str();
             std::string  r2S = r2.get_str();
-            std::cout<<"\nX+y = "<<tmp1.get_str()<<"\nX-Y"<<tmp2.get_str()<<'\n';
-            std::cout<<r1S<< " "<<r2S<<'\n';
+            //std::cout<<"\nX+y = "<<tmp1.get_str()<<"\nX-Y"<<tmp2.get_str()<<'\n';
+            std::cout<<"\n"<<r1S<< " "<<r2S<<'\n';
             mpz_clear(xPlusY);
             mpz_clear(xMinusY);
             X = 1;
@@ -503,18 +534,26 @@ std::string algo::methodBrillhartMorrison(ll n, std::vector<ll> primes)
             if(r1S != "1" && r1S != std::to_string(n))
             {
                 mpz_clear(N);
+                auto end = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> duration = end - start;
+                std::cout << "Час виконання БМ: " << duration.count() << " секунд" << std::endl;
                 return r1.get_str();
             }
             if (r2S != "1" && r2S != std::to_string(n))
             {
                 mpz_clear(N);
+                auto end = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> duration = end - start;
+                std::cout << "Час виконання БМ: " << duration.count() << " секунд" << std::endl;
                 return r2.get_str();
             }
             else
                 continue;
         }
     }
-
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+    std::cout << "Час виконання БМ: " << duration.count() << " секунд" << std::endl;
     return "problem";
 
 
