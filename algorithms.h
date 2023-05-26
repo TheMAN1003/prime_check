@@ -1,16 +1,21 @@
-//
-// Created by Akgzulag on 11.03.2023.
-//
-
 #ifndef NTA_LAB_1_ALGORITHMS_H
 #define NTA_LAB_1_ALGORITHMS_H
 
-namespace algo {
+#define ll long long
 
-    class algorithms {
+#include <iostream>
+#include <cmath>
+#include <cstdlib>
+#include <vector>
+#include <gmpxx.h>
 
-    };
+namespace algo
+{
+    ll trial(ll n);
+    ll pollard(ll n);
+    bool MillerRabin(ll p);
 
-} // algo
+    ll methodBrillhartMorrison(ll n,std::vector<ll> primes);
+}
 
 #endif //NTA_LAB_1_ALGORITHMS_H
