@@ -15,7 +15,7 @@ namespace algo
     ll pollard(ll n);
     bool MillerRabin(ll p);
 
-    std::string methodBrillhartMorrison(ll n,std::vector<ll> primes);
+    ll methodBrillhartMorrison(ll n,std::vector<ll> primes);
 }
 
 #endif //NTA_LAB_1_ALGORITHMS_H
